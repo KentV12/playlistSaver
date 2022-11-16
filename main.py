@@ -6,6 +6,7 @@ import pickle
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
+from datetime import date
 
 # Can only retrieve 50 playlists with 50 videos per playlist
 # To use application:
@@ -40,30 +41,40 @@ def main():
                 pickle.dump(credentials, f)
 
     youtube = build("youtube", "v3", credentials=credentials)
-    request = youtube.playlists().list(part="snippet,contentDetails", mine=True, maxResults=50) # maxResult default is 5, can be 0 to 50
+    request = youtube.playlists().list(part="snippet,contentDetails", mine=True, maxResults=50) # maxResult default is 5, can be 0 to 50 (per page)
     response = request.execute()
 
     # study / troubleshoot purposes
     # print("RESPONSE")
     # print(response)
+
+    # writing a text file
+    file = open(str(date.today()) + " Videos.txt", "w", errors="ignore") # some characters that cannot be read will return as errors
     
-    # for each playlist, retrieve title 
+    # for each playlist, retrieve title
     for item in response["items"]:
-        print("Playlist:", item["snippet"]["title"])
+        file.write("******************\n")
+        file.write("Playlist: " + item["snippet"]["title"] + "\n")
 
         # find videos from playlistId
-        videoRequest = youtube.playlistItems().list(part="snippet,contentDetails", playlistId=item["id"], maxResults=50) # maxResult default is 5, can be 0 to 50
+        videoRequest = youtube.playlistItems().list(part="snippet,contentDetails", playlistId=item["id"], maxResults=100) # maxResult default is 5, can be 0 to 50 (per page)
         videoResponse = videoRequest.execute()
 
         # study / troubleshoot purposes
         # print("VIDEORESPONSE")
         # print(videoResponse)
 
-        # for each video
+        # write each video's title
+        videoCount = 1
         for video in videoResponse["items"]:
-            print(video["snippet"]["title"])
+            file.write(str(videoCount) + ": " + video["snippet"]["title"] + "\n")
+            videoCount += 1
 
+        file.write("\n")
+
+    # close files and objects
     youtube.close()
+    file.close()
 
 if __name__ == "__main__":
     main()
